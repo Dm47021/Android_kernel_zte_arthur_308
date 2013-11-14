@@ -1,7 +1,7 @@
 /* arch/arm/mach-msm/include/mach/memory.h
  *
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2009-2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2009-2011, Code Aurora Forum. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -23,13 +23,8 @@
 #define MAX_PHYSMEM_BITS 32
 #define SECTION_SIZE_BITS 28
 
-/* Maximum number of Memory Regions
-*  The largest system can have 4 memory banks, each divided into 8 regions
-*/
-#define MAX_NR_REGIONS 32
-
-/* The number of regions each memory bank is divided into */
-#define NR_REGIONS_PER_BANK 8
+/* Maximum number of Memory Regions */
+#define MAX_NR_REGIONS 4
 
 /* Certain configurations of MSM7x30 have multiple memory banks.
 *  One or more of these banks can contain holes in the memory map as well.
@@ -48,45 +43,21 @@
 
 extern unsigned long ebi1_phys_offset;
 
-#if defined(CONFIG_ZTE_3_CHANNEL_6G_DDR_CFG1)
-#define EBI0_CS1_SIZE 0x10000000 
-#define EBI0_CS1_PHYS_OFFSET 0x20000000
-#define EBI0_CS1_PAGE_OFFSET (EBI0_PAGE_OFFSET + EBI0_SIZE)
-
-#define EBI1_PHYS_OFFSET 0x40000000 // ebi1_phys_offset?
-#define EBI1_PAGE_OFFSET (EBI0_PAGE_OFFSET + EBI0_SIZE + EBI0_CS1_SIZE)
-#else
 #define EBI1_PHYS_OFFSET (ebi1_phys_offset)
 #define EBI1_PAGE_OFFSET (EBI0_PAGE_OFFSET + EBI0_SIZE)
-#endif // CONFIG_ZTE_3_CHANNEL_6G_DDR_CFG1
 
 #if (defined(CONFIG_SPARSEMEM) && defined(CONFIG_VMSPLIT_3G))
-#if defined(CONFIG_ZTE_3_CHANNEL_6G_DDR_CFG1)
-#define __phys_to_virt(phys)				\
-	((phys) >= EBI1_PHYS_OFFSET ?			\
-	(phys) - EBI1_PHYS_OFFSET + EBI1_PAGE_OFFSET :	\
-	((phys) >= EBI0_CS1_PHYS_OFFSET ?			\
-	(phys) - EBI0_CS1_PHYS_OFFSET + EBI0_CS1_PAGE_OFFSET :	\
-	(phys) - EBI0_PHYS_OFFSET + EBI0_PAGE_OFFSET))
 
-#define __virt_to_phys(virt)				\
-	((virt) >= EBI1_PAGE_OFFSET ?			\
-	(virt) - EBI1_PAGE_OFFSET + EBI1_PHYS_OFFSET :	\
-	((virt) >= EBI0_CS1_PAGE_OFFSET ?			\
-	(virt) - EBI0_CS1_PAGE_OFFSET + EBI0_CS1_PHYS_OFFSET :	\
-	(virt) - EBI0_PAGE_OFFSET + EBI0_PHYS_OFFSET))
-#else
-#define __phys_to_virt(phys)				\
-	((phys) >= EBI1_PHYS_OFFSET ?			\
-	(phys) - EBI1_PHYS_OFFSET + EBI1_PAGE_OFFSET :	\
-	(phys) - EBI0_PHYS_OFFSET + EBI0_PAGE_OFFSET)
+#define __phys_to_virt(phys)                                \
+        ((phys) >= EBI1_PHYS_OFFSET ?                        \
+        (phys) - EBI1_PHYS_OFFSET + EBI1_PAGE_OFFSET :        \
+        (phys) - EBI0_PHYS_OFFSET + EBI0_PAGE_OFFSET)
 
-#define __virt_to_phys(virt)				\
-	((virt) >= EBI1_PAGE_OFFSET ?			\
-	(virt) - EBI1_PAGE_OFFSET + EBI1_PHYS_OFFSET :	\
-	(virt) - EBI0_PAGE_OFFSET + EBI0_PHYS_OFFSET)
+#define __virt_to_phys(virt)                                \
+        ((virt) >= EBI1_PAGE_OFFSET ?                        \
+        (virt) - EBI1_PAGE_OFFSET + EBI1_PHYS_OFFSET :        \
+        (virt) - EBI0_PAGE_OFFSET + EBI0_PHYS_OFFSET)
 
-#endif // CONFIG_ZTE_3_CHANNEL_6G_DDR_CFG1
 #endif
 #endif
 
@@ -117,7 +88,7 @@ extern void l2x0_cache_sync(void);
 
 #if defined(CONFIG_ARCH_MSM8X60) || defined(CONFIG_ARCH_MSM8960)
 extern void store_ttbr0(void);
-#define finish_arch_switch(prev)	do { store_ttbr0(); } while (0)
+#define finish_arch_switch(prev)        do { store_ttbr0(); } while (0)
 #endif
 
 #ifdef CONFIG_DONT_MAP_HOLE_AFTER_MEMBANK0
@@ -130,32 +101,32 @@ extern unsigned long membank1_start;
 #define MEMBANK1_PHYS_OFFSET (membank1_start)
 #define MEMBANK1_PAGE_OFFSET (MEMBANK0_PAGE_OFFSET + (membank0_size))
 
-#define __phys_to_virt(phys)				\
-	((MEMBANK1_PHYS_OFFSET && ((phys) >= MEMBANK1_PHYS_OFFSET)) ?	\
-	(phys) - MEMBANK1_PHYS_OFFSET + MEMBANK1_PAGE_OFFSET :	\
-	(phys) - MEMBANK0_PHYS_OFFSET + MEMBANK0_PAGE_OFFSET)
+#define __phys_to_virt(phys)                                \
+        ((MEMBANK1_PHYS_OFFSET && ((phys) >= MEMBANK1_PHYS_OFFSET)) ?        \
+        (phys) - MEMBANK1_PHYS_OFFSET + MEMBANK1_PAGE_OFFSET :        \
+        (phys) - MEMBANK0_PHYS_OFFSET + MEMBANK0_PAGE_OFFSET)
 
-#define __virt_to_phys(virt)				\
-	((MEMBANK1_PHYS_OFFSET && ((virt) >= MEMBANK1_PAGE_OFFSET)) ?	\
-	(virt) - MEMBANK1_PAGE_OFFSET + MEMBANK1_PHYS_OFFSET :	\
-	(virt) - MEMBANK0_PAGE_OFFSET + MEMBANK0_PHYS_OFFSET)
+#define __virt_to_phys(virt)                                \
+        ((MEMBANK1_PHYS_OFFSET && ((virt) >= MEMBANK1_PAGE_OFFSET)) ?        \
+        (virt) - MEMBANK1_PAGE_OFFSET + MEMBANK1_PHYS_OFFSET :        \
+        (virt) - MEMBANK0_PAGE_OFFSET + MEMBANK0_PHYS_OFFSET)
 #endif
 
 #endif
 
 #if defined CONFIG_ARCH_MSM_SCORPION || defined CONFIG_ARCH_MSM_KRAIT
-#define arch_has_speculative_dfetch()	1
+#define arch_has_speculative_dfetch()        1
 #endif
 
 #endif
 
 /* these correspond to values known by the modem */
-#define MEMORY_DEEP_POWERDOWN	0
-#define MEMORY_SELF_REFRESH	1
-#define MEMORY_ACTIVE		2
+#define MEMORY_DEEP_POWERDOWN        0
+#define MEMORY_SELF_REFRESH        1
+#define MEMORY_ACTIVE                2
 
-#define NPA_MEMORY_NODE_NAME	"/mem/apps/ddr_dpd"
+#define NPA_MEMORY_NODE_NAME        "/mem/apps/ddr_dpd"
 
 #ifndef CONFIG_ARCH_MSM7X27
-#define CONSISTENT_DMA_SIZE	(SZ_1M * 14)
+#define CONSISTENT_DMA_SIZE        (SZ_1M * 14)
 #endif
