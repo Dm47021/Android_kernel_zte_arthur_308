@@ -195,9 +195,16 @@ static struct tagtable __tagtable_##fn __tag = { tag, fn }
 #define NR_BANKS 8
 
 struct membank {
+#if defined(CONFIG_MACH_ARTHUR)
+        unsigned long start;
+        unsigned long size;
+        unsigned short node;
+        unsigned short highmem;
+#else
 	phys_addr_t start;
 	unsigned long size;
 	unsigned int highmem;
+#endif
 };
 
 struct meminfo {
