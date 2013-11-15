@@ -94,11 +94,14 @@ when          who    what, where, why                      	comment tag
 
 #include "board-msm7x30-regulator.h"
 #include "pm.h"
-
-#include <linux/lis302dl.h> 
 #include <linux/pmic8058-othc.h>  
 #include <mach/zte_memlog.h>
 #include <linux/proc_fs.h>
+
+#include <linux/adxl34x.h>
+#include <linux/lis302dl.h> 
+#include <linux/akm8962.h>
+
 void msm7x30_ts_init(void); 
 
 /* Propper Memory Setup, Not that ZTE ZBS */
@@ -574,24 +577,23 @@ static struct lis302dl_platform_data gsensor = {
 
 static struct i2c_board_info msm_camera_boardinfo[] __initdata = {
 
-#ifdef CONFIG_SENSORS_AKM8962
+//akm8962
 	{
 		I2C_BOARD_INFO("akm8962", 0x0c),
 	},
-#endif
-#ifdef CONFIG_SENSORS_LIS302DL
+
+//lis302dl
 	{
 		.type = "lis302dl",
 		.addr = 0x1c,
 		.platform_data = &gsensor,
 	},
-#endif
-#ifdef CONFIG_SENSORS_ADXL34X
+
+//adxl34x
 	{
 		.type = "adxl34x",
 		.addr = 0x53,
 	},
-#endif
 
 #if defined(CONFIG_MACH_ARTHUR)
 #ifdef CONFIG_OV5640
