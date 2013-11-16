@@ -155,9 +155,6 @@ void msm7x30_ts_init(void);
 #define DDR1_BANK_BASE 0X20000000
 #define DDR2_BANK_BASE 0X40000000
 
-#define MSM_HIGHMEM_BASE        0x35100000
-#define MSM_HIGHMEM_SIZE        0x0AF00000
-
 static unsigned int phys_add = DDR2_BANK_BASE;
 unsigned long ebi1_phys_offset = DDR2_BANK_BASE;
 EXPORT_SYMBOL(ebi1_phys_offset);
@@ -5227,35 +5224,27 @@ static struct mmc_platform_data msm7x30_sdc2_data = {
 
 #ifdef CONFIG_MMC_MSM_SDC3_SUPPORT
 static struct mmc_platform_data msm7x30_sdc3_data = {
-	.ocr_mask	= MMC_VDD_27_28 | MMC_VDD_28_29,
-	.translate_vdd	= msm_sdcc_setup_power,
-	.mmc_bus_width  = MMC_CAP_4_BIT_DATA,
-#ifdef CONFIG_MMC_MSM_SDIO_SUPPORT
-#ifdef CONFIG_ATH_WIFI
-#ifdef CONFIG_WOW_BY_SDIO_DATA1
-	.sdiowakeup_irq = MSM_GPIO_TO_INT(118),
-#endif
-#endif
-#endif
-	.msmsdcc_fmin	= 144000,
-	.msmsdcc_fmid	= 24576000,
-	.msmsdcc_fmax	= 49152000,
-	.nonremovable	= 0,
-	.status                 = zte_wifi_status,
-    .register_status_notify = zte_wifi_status_register,
+        .ocr_mask        = MMC_VDD_27_28 | MMC_VDD_28_29,
+        .translate_vdd        = msm_sdcc_setup_power,
+        .mmc_bus_width  = MMC_CAP_4_BIT_DATA,
+        .sdiowakeup_irq = MSM_GPIO_TO_INT(118),
+        .msmsdcc_fmin        = 144000,
+        .msmsdcc_fmid        = 24576000,
+        .msmsdcc_fmax        = 49152000,
+        .nonremovable        = 0,
+	.status              = zte_wifi_status,
+        .register_status_notify = zte_wifi_status_register,
 };
 #endif
 
 #ifdef CONFIG_MMC_MSM_SDC4_SUPPORT
 static struct mmc_platform_data msm7x30_sdc4_data = {
-	.ocr_mask	= MMC_VDD_27_28 | MMC_VDD_28_29,
-	.translate_vdd	= msm_sdcc_setup_power,
-	.mmc_bus_width  = MMC_CAP_4_BIT_DATA,
-#ifdef CONFIG_MMC_MSM_CARD_HW_DETECTION
-	.status      = msm7x30_sdcc_slot_status,
-	.status_irq  = PM8058_GPIO_IRQ(PMIC8058_IRQ_BASE, PMIC_GPIO_SD_DET - 1),
-	.irq_flags   = IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
-#endif
+        .ocr_mask        = MMC_VDD_27_28 | MMC_VDD_28_29,
+        .translate_vdd        = msm_sdcc_setup_power,
+        .mmc_bus_width  = MMC_CAP_4_BIT_DATA,
+        .status      = msm7x30_sdcc_slot_status,
+        .status_irq  = PM8058_GPIO_IRQ(PMIC8058_IRQ_BASE, PMIC_GPIO_SD_DET),
+        .irq_flags   = IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
 	.wpswitch    = msm_sdcc_get_wpswitch,
 	.msmsdcc_fmin	= 144000,
 	.msmsdcc_fmid	= 24576000,
@@ -5698,9 +5687,6 @@ static void __init msm7x30_init(void)
 	zte_ftm_set_value(g_zte_ftm_flag_fixup);
        set_zte_board_id_type();
 #endif
-#ifdef CONFIG_BCM_BT
-	bt_power_init();
-#endif
 
 	msm_clock_init(&msm7x30_clock_init_data);
 #ifdef CONFIG_SERIAL_MSM_CONSOLE
@@ -5802,7 +5788,7 @@ static void __init msm7x30_init(void)
 	i2c_register_board_info(4 /* QUP ID */, msm_camera_boardinfo,
 				ARRAY_SIZE(msm_camera_boardinfo));
 
-	//bt_power_init();
+	bt_power_init();
 	msm_sensors_power_supply(); 
 #ifdef CONFIG_I2C_SSBI
 	msm_device_ssbi7.dev.platform_data = &msm_i2c_ssbi7_pdata;
@@ -5994,11 +5980,15 @@ static void __init msm7x30_init_early(void)
 static void __init memory_fixup(struct machine_desc *desc, struct tag *tags,
           char **cmdline, struct meminfo *mi)
  {
+
+#define MEMBANK0_ADDR 0x00200000 
+#define MEMBANK1_ADDR 0x40000000
+
    mi->nr_banks = 2;
-   mi->bank[0].start = 0x00200000;
+   mi->bank[0].start = MEMBANK0_ADDR;
    mi->bank[0].node = 0;
    mi->bank[0].size = 256 * SZ_1M;
-   mi->bank[1].start = 0x40000000;
+   mi->bank[1].start = MEMBANK1_ADDR;
    mi->bank[1].node = 1;
    mi->bank[1].size = 256 * SZ_1M;
  
