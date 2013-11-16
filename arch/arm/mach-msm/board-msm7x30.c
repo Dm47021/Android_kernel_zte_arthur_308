@@ -5977,6 +5977,85 @@ static void __init msm7x30_init_early(void)
 	msm7x30_allocate_memory_regions();
 }
 
+#if defined(CONFIG_ZTE_PLATFORM) && defined(CONFIG_F3_LOG)
+  unsigned int len = 0;
+  smem_global *global_tmp = (smem_global *)(MSM_RAM_LOG_BASE + PAGE_SIZE) ;
+
+  len = global_tmp->f3log;
+
+  pr_info("length for f3 log is %d ++ \n", len);
+
+  if (len > 12)
+  {
+    len = 12;
+  }
+  else
+  {
+    len = len/2*2;
+  }
+    
+  pr_info("length = %d -- \n", len);
+  size = len;
+    
+  if (size)
+  {
+    reserve_bootmem(SDLOG_MEM_BASE, size * 0x100000, BOOTMEM_DEFAULT);
+  }
+
+  addr = phys_to_virt(SDLOG_MEM_BASE);
+  pr_info("allocating %lu M at %p (%lx physical) for F3\n",size, addr, __pa(addr));
+
+#endif
+
+#ifdef CONFIG_ZTE_PLATFORM
+#define ATAG_ZTEFTM 0x5d53cd73
+static int  parse_tag_zteftm(const struct tag *tags)
+{
+        int flag = 0, find = 0;
+        struct tag *t = (struct tag *)tags;
+
+        for (; t->hdr.size; t = tag_next(t)) {
+                if (t->hdr.tag == ATAG_ZTEFTM) {
+                        printk(KERN_DEBUG "find the zte ftm tag\n");
+                        find = 1;
+                        break;
+                }
+        }
+
+        if (find)
+                flag = t->u.revision.rev;
+        printk(KERN_INFO "jiangfeng:parse_tag_zteftm: zte FTM %s !\n", flag?"enable":"disable");
+        return flag;
+}
+
+static void __init zte_fixup(struct machine_desc *desc, struct tag *tags,
+                                  char **cmdline, struct meminfo *mi)
+
+{
+
+
+#define MEMBANK0_ADDR 0x00200000 
+#define MEMBANK1_ADDR 0x40000000
+
+   mi->nr_banks = 2;
+   mi->bank[0].start = MEMBANK0_ADDR;
+   mi->bank[0].node = 0;
+   mi->bank[0].size = 256 * SZ_1M;
+   mi->bank[1].start = MEMBANK1_ADDR;
+   mi->bank[1].node = 1;
+   mi->bank[1].size = 256 * SZ_1M;
+ 
+        g_zte_ftm_flag_fixup = parse_tag_zteftm((const struct tag *)tags);
+}
+
+int get_ftm_from_tag(void)
+{
+        return g_zte_ftm_flag_fixup;
+}
+EXPORT_SYMBOL(get_ftm_from_tag);
+
+#endif
+#if 0
 static void __init memory_fixup(struct machine_desc *desc, struct tag *tags,
           char **cmdline, struct meminfo *mi)
  {
@@ -5993,10 +6072,10 @@ static void __init memory_fixup(struct machine_desc *desc, struct tag *tags,
    mi->bank[1].size = 256 * SZ_1M;
  
  }
-
+#endif
 MACHINE_START(ARTHUR, "arthur")
 	.boot_params = PLAT_PHYS_OFFSET + 0x100,
-        .fixup = memory_fixup, // thanks hroark13
+        .fixup = zte_fixup, // thanks hroark13
 	.map_io = msm7x30_map_io,
 	.reserve = msm7x30_reserve,
 	.init_irq = msm7x30_init_irq,
