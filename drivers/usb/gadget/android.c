@@ -189,11 +189,11 @@ static int is_ftm_mode(void)
 	return !!ftm_mode;
 }
 
-//static void set_ftm_mode(int i)
-//{
-//	ftm_mode = i;
-//	return ;
-//}
+static void set_ftm_mode(int i)
+{
+	ftm_mode = i;
+	return ;
+}
 
 static int is_pid_configed_from_nv(void)
 {
@@ -246,7 +246,7 @@ static int config_ftm_from_tag(void)
 		return 0;
 	}
 
-	//set_ftm_mode(get_ftm_from_tag());
+	set_ftm_mode(get_ftm_from_tag());
 	printk("usb: %s, %d: ftm_mode %s\n",
 	       __FUNCTION__, __LINE__,
 	       is_ftm_mode()?"enable":"disable");
