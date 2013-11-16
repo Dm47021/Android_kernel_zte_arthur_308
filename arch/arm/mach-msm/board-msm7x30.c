@@ -6055,24 +6055,6 @@ int get_ftm_from_tag(void)
 EXPORT_SYMBOL(get_ftm_from_tag);
 
 #endif
-#if 0
-static void __init memory_fixup(struct machine_desc *desc, struct tag *tags,
-          char **cmdline, struct meminfo *mi)
- {
-
-#define MEMBANK0_ADDR 0x00200000 
-#define MEMBANK1_ADDR 0x40000000
-
-   mi->nr_banks = 2;
-   mi->bank[0].start = MEMBANK0_ADDR;
-   mi->bank[0].node = 0;
-   mi->bank[0].size = 256 * SZ_1M;
-   mi->bank[1].start = MEMBANK1_ADDR;
-   mi->bank[1].node = 1;
-   mi->bank[1].size = 256 * SZ_1M;
- 
- }
-#endif
 MACHINE_START(ARTHUR, "arthur")
 	.boot_params = PLAT_PHYS_OFFSET + 0x100,
         .fixup = zte_fixup, // thanks hroark13
