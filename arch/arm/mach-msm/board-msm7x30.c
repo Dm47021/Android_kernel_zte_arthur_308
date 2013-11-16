@@ -3569,8 +3569,20 @@ static void __init msm_fb_add_devices(void)
 	msm_fb_register_device("mdp", &mdp_pdata);
 	msm_fb_register_device("lcdc", &lcdc_pdata);
 }
+/// Qualcomm Bluetooth from 2.6.35
 
-#ifdef CONFIG_MSM_BT 
+#if defined(CONFIG_MARIMBA_CORE) && \
+   (defined(CONFIG_MSM_BT_POWER) || defined(CONFIG_MSM_BT_POWER_MODULE))
+static struct platform_device msm_bt_power_device = {
+	.name = "bt_power",
+	.id     = -1
+};
+//compatible of qualcomm and broadcomm bluetooth chip      
+static struct platform_device msm_bcm_power_device = {
+	.name = "bcm_power",
+};
+//compatible of qualcomm and broadcomm bluetooth chip      
+
 enum {
 	BT_RFR,
 	BT_CTS,
@@ -3586,7 +3598,11 @@ static struct msm_gpio bt_config_power_on[] = {
 	{ GPIO_CFG(136, 1, GPIO_CFG_INPUT,  GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
 		"UART1DM_Rx" },
 	{ GPIO_CFG(137, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
-		"UART1DM_Tx" }
+		"UART1DM_Tx" },
+	{ GPIO_CFG(39, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
+		"BT_WAKE" },
+	{ GPIO_CFG(40, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN,   GPIO_CFG_2MA),
+		"BT_WAKE_INT" }
 };
 
 static struct msm_gpio bt_config_power_off[] = {
@@ -3597,33 +3613,18 @@ static struct msm_gpio bt_config_power_off[] = {
 	{ GPIO_CFG(136, 0, GPIO_CFG_INPUT,  GPIO_CFG_PULL_DOWN,   GPIO_CFG_2MA),
 		"UART1DM_Rx" },
 	{ GPIO_CFG(137, 0, GPIO_CFG_INPUT,  GPIO_CFG_PULL_DOWN,   GPIO_CFG_2MA),
-		"UART1DM_Tx" }
+		"UART1DM_Tx" },
+	{ GPIO_CFG(39, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN,   GPIO_CFG_2MA),
+		"BT_WAKE" },
+	{ GPIO_CFG(40, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN,   GPIO_CFG_2MA),
+		"BT_WAKE_INT" }
+	
 };
 
-static u8 bahama_version;
-
-static struct regulator_bulk_data regs_bt_marimba[] = {
-	{ .supply = "smps3", .min_uV = 1800000, .max_uV = 1800000 },
-	{ .supply = "smps2", .min_uV = 1300000, .max_uV = 1300000 },
-	{ .supply = "ldo24", .min_uV = 1200000, .max_uV = 1200000 },
-	{ .supply = "ldo13", .min_uV = 2900000, .max_uV = 3050000 },
+static struct msm_gpio bt_config_clock[] = {
+	{ GPIO_CFG(34, 0, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL,    GPIO_CFG_2MA),
+		"BT_REF_CLOCK_ENABLE" },
 };
-
-static struct regulator_bulk_data regs_bt_bahama_v1[] = {
-	{ .supply = "smps3", .min_uV = 1800000, .max_uV = 1800000 },
-	{ .supply = "ldo7",  .min_uV = 1800000, .max_uV = 1800000 },
-	{ .supply = "smps2", .min_uV = 1300000, .max_uV = 1300000 },
-	{ .supply = "ldo13", .min_uV = 2900000, .max_uV = 3050000 },
-};
-
-static struct regulator_bulk_data regs_bt_bahama_v2[] = {
-	{ .supply = "smps3", .min_uV = 1800000, .max_uV = 1800000 },
-	{ .supply = "ldo7",  .min_uV = 1800000, .max_uV = 1800000 },
-	{ .supply = "ldo13", .min_uV = 2900000, .max_uV = 3050000 },
-};
-
-static struct regulator_bulk_data *regs_bt;
-static int regs_bt_count;
 
 static int marimba_bt(int on)
 {
@@ -3753,190 +3754,28 @@ static int marimba_bt(int on)
 	return 0;
 }
 
-static int bahama_bt(int on)
+static const char *vregs_bt_name[] = {
+	"gp16",
+	"s2",
+	"wlan"
+};
+static struct vreg *vregs_bt[ARRAY_SIZE(vregs_bt_name)];
+
+static int bluetooth_power_regulators(int on)
 {
-	int rc;
-	int i;
-	struct marimba config = { .mod_id = SLAVE_ID_BAHAMA };
+	int i, rc;
 
-	struct bahama_variant_register {
-		const size_t size;
-		const struct bahama_config_register *set;
-	};
-
-	const struct bahama_config_register *p;
-
-
-	const struct bahama_config_register v10_bt_on[] = {
-		{ 0xE9, 0x00, 0xFF },
-		{ 0xF4, 0x80, 0xFF },
-		{ 0xF0, 0x06, 0xFF },
-		{ 0xE4, 0x00, 0xFF },
-		{ 0xE5, 0x00, 0x0F },
-#ifdef CONFIG_WLAN
-		{ 0xE6, 0x38, 0x7F },
-		{ 0xE7, 0x06, 0xFF },
-#endif
-		{ 0x11, 0x13, 0xFF },
-		{ 0xE9, 0x21, 0xFF },
-		{ 0x01, 0x0C, 0x1F },
-		{ 0x01, 0x08, 0x1F },
-	};
-
-	const struct bahama_config_register v20_bt_on_fm_off[] = {
-		{ 0x11, 0x0C, 0xFF },
-		{ 0x13, 0x01, 0xFF },
-		{ 0xF4, 0x80, 0xFF },
-		{ 0xF0, 0x00, 0xFF },
-		{ 0xE9, 0x00, 0xFF },
-#ifdef CONFIG_WLAN
-		{ 0x81, 0x00, 0xFF },
-		{ 0x82, 0x00, 0xFF },
-		{ 0xE6, 0x38, 0x7F },
-		{ 0xE7, 0x06, 0xFF },
-#endif
-		{ 0xE9, 0x21, 0xFF }
-	};
-
-	const struct bahama_config_register v20_bt_on_fm_on[] = {
-		{ 0x11, 0x0C, 0xFF },
-		{ 0x13, 0x01, 0xFF },
-		{ 0xF4, 0x86, 0xFF },
-		{ 0xF0, 0x06, 0xFF },
-		{ 0xE9, 0x00, 0xFF },
-#ifdef CONFIG_WLAN
-		{ 0x81, 0x00, 0xFF },
-		{ 0x82, 0x00, 0xFF },
-		{ 0xE6, 0x38, 0x7F },
-		{ 0xE7, 0x06, 0xFF },
-#endif
-		{ 0xE9, 0x21, 0xFF }
-	};
-
-	const struct bahama_config_register v10_bt_off[] = {
-		{ 0xE9, 0x00, 0xFF },
-	};
-
-	const struct bahama_config_register v20_bt_off_fm_off[] = {
-		{ 0xF4, 0x84, 0xFF },
-		{ 0xF0, 0x04, 0xFF },
-		{ 0xE9, 0x00, 0xFF }
-	};
-
-	const struct bahama_config_register v20_bt_off_fm_on[] = {
-		{ 0xF4, 0x86, 0xFF },
-		{ 0xF0, 0x06, 0xFF },
-		{ 0xE9, 0x00, 0xFF }
-	};
-
-	const struct bahama_variant_register bt_bahama[2][3] = {
-		{
-			{ ARRAY_SIZE(v10_bt_off), v10_bt_off },
-			{ ARRAY_SIZE(v20_bt_off_fm_off), v20_bt_off_fm_off },
-			{ ARRAY_SIZE(v20_bt_off_fm_on), v20_bt_off_fm_on }
-		},
-		{
-			{ ARRAY_SIZE(v10_bt_on), v10_bt_on },
-			{ ARRAY_SIZE(v20_bt_on_fm_off), v20_bt_on_fm_off },
-			{ ARRAY_SIZE(v20_bt_on_fm_on), v20_bt_on_fm_on }
-		}
-	};
-
-	u8 offset = 0; /* index into bahama configs */
-
-	on = on ? 1 : 0;
-
-
-	if (bahama_version == VER_2_0) {
-		if (marimba_get_fm_status(&config))
-			offset = 0x01;
-	}
-
-	p = bt_bahama[on][bahama_version + offset].set;
-
-	dev_info(&msm_bt_power_device.dev,
-		"%s: found version %d\n", __func__, bahama_version);
-
-	for (i = 0; i < bt_bahama[on][bahama_version + offset].size; i++) {
-		u8 value = (p+i)->value;
-		rc = marimba_write_bit_mask(&config,
-			(p+i)->reg,
-			&value,
-			sizeof((p+i)->value),
-			(p+i)->mask);
+	for (i = 0; i < ARRAY_SIZE(vregs_bt_name); i++) {
+		rc = on ? vreg_enable(vregs_bt[i]) :
+			  vreg_disable(vregs_bt[i]);
 		if (rc < 0) {
-			dev_err(&msm_bt_power_device.dev,
-				"%s: reg %d write failed: %d\n",
-				__func__, (p+i)->reg, rc);
-			return rc;
+			printk(KERN_ERR "%s: vreg %s %s failed (%d)\n",
+				__func__, vregs_bt_name[i],
+			       on ? "enable" : "disable", rc);
+			return -EIO;
 		}
-		dev_info(&msm_bt_power_device.dev,
-			"%s: reg 0x%02x write value 0x%02x mask 0x%02x\n",
-				__func__, (p+i)->reg,
-				value, (p+i)->mask);
 	}
-	/* Update BT status */
-	if (on)
-		marimba_set_bt_status(&config, true);
-	else
-		marimba_set_bt_status(&config, false);
-
 	return 0;
-}
-
-static int bluetooth_regs_init(int bahama_not_marimba)
-{
-	int rc = 0;
-	struct device *const dev = &msm_bt_power_device.dev;
-
-	if (bahama_not_marimba) {
-		bahama_version = read_bahama_ver();
-
-		switch (bahama_version) {
-		case VER_1_0:
-			regs_bt = regs_bt_bahama_v1;
-			regs_bt_count = ARRAY_SIZE(regs_bt_bahama_v1);
-			break;
-		case VER_2_0:
-			regs_bt = regs_bt_bahama_v2;
-			regs_bt_count = ARRAY_SIZE(regs_bt_bahama_v2);
-			break;
-		case VER_UNSUPPORTED:
-		default:
-			dev_err(dev,
-				"%s: i2c failure or unsupported version: %d\n",
-				__func__, bahama_version);
-			rc = -EIO;
-			goto out;
-		}
-	} else {
-		regs_bt = regs_bt_marimba;
-		regs_bt_count = ARRAY_SIZE(regs_bt_marimba);
-	}
-
-	rc = regulator_bulk_get(&msm_bt_power_device.dev,
-			regs_bt_count, regs_bt);
-	if (rc) {
-		dev_err(dev, "%s: could not get regulators: %d\n",
-				__func__, rc);
-		goto out;
-	}
-
-	rc = regulator_bulk_set_voltage(regs_bt_count, regs_bt);
-	if (rc) {
-		dev_err(dev, "%s: could not set voltages: %d\n",
-				__func__, rc);
-		goto reg_free;
-	}
-
-	return 0;
-
-reg_free:
-	regulator_bulk_free(regs_bt_count, regs_bt);
-out:
-	regs_bt_count = 0;
-	regs_bt = NULL;
-	return rc;
 }
 
 static int bluetooth_power(int on)
@@ -3944,24 +3783,17 @@ static int bluetooth_power(int on)
 	int rc;
 	const char *id = "BTPW";
 
-	int bahama_not_marimba = bahama_present();
-
-	if (bahama_not_marimba == -1) {
-		printk(KERN_WARNING "%s: bahama_present: %d\n",
-				__func__, bahama_not_marimba);
-		return -ENODEV;
-	}
-
-	if (unlikely(regs_bt_count == 0)) {
-		rc = bluetooth_regs_init(bahama_not_marimba);
-		if (rc)
-			return rc;
-	}
-
 	if (on) {
-		rc = regulator_bulk_enable(regs_bt_count, regs_bt);
-		if (rc)
+		rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S2, 1300);
+		if (rc < 0) {
+			printk(KERN_ERR "%s: vreg level on failed (%d)\n",
+				__func__, rc);
 			return rc;
+		}
+
+		rc = bluetooth_power_regulators(on);
+		if (rc < 0)
+			return -EIO;
 
 		rc = pmapp_clock_vote(id, PMAPP_CLOCK_ID_DO,
 					  PMAPP_CLOCK_VOTE_ON);
@@ -3969,17 +3801,13 @@ static int bluetooth_power(int on)
 			return -EIO;
 
 		if (machine_is_msm8x55_svlte_surf() ||
-				machine_is_msm8x55_svlte_ffa()) {
-					rc = marimba_gpio_config(1);
-					if (rc < 0)
-						return -EIO;
-		}
+				machine_is_msm8x55_svlte_ffa())
+			gpio_set_value(
+				GPIO_PIN(bt_config_clock->gpio_cfg), 1);
 
-		rc = (bahama_not_marimba ? bahama_bt(on) : marimba_bt(on));
+		rc = marimba_bt(on);
 		if (rc < 0)
 			return -EIO;
-
-		msleep(10);
 
 		rc = pmapp_clock_vote(id, PMAPP_CLOCK_ID_DO,
 					  PMAPP_CLOCK_VOTE_PIN_CTRL);
@@ -3987,11 +3815,9 @@ static int bluetooth_power(int on)
 			return -EIO;
 
 		if (machine_is_msm8x55_svlte_surf() ||
-				machine_is_msm8x55_svlte_ffa()) {
-					rc = marimba_gpio_config(0);
-					if (rc < 0)
-						return -EIO;
-		}
+				machine_is_msm8x55_svlte_ffa())
+			gpio_set_value(
+				GPIO_PIN(bt_config_clock->gpio_cfg), 0);
 
 		rc = msm_gpios_enable(bt_config_power_on,
 			ARRAY_SIZE(bt_config_power_on));
@@ -4009,7 +3835,7 @@ static int bluetooth_power(int on)
 		if (platform_get_drvdata(&msm_bt_power_device) == NULL)
 			goto out;
 
-		rc = (bahama_not_marimba ? bahama_bt(on) : marimba_bt(on));
+		rc = marimba_bt(on);
 		if (rc < 0)
 			return -EIO;
 
@@ -4018,10 +3844,15 @@ static int bluetooth_power(int on)
 		if (rc < 0)
 			return -EIO;
 
-		rc = regulator_bulk_disable(regs_bt_count, regs_bt);
-		if (rc)
-			return rc;
+		rc = bluetooth_power_regulators(on);
+		if (rc < 0)
+			return -EIO;
 
+		rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S2, 0);
+		if (rc < 0) {
+			printk(KERN_INFO "%s: vreg level off failed (%d)\n",
+				__func__, rc);
+		}
 	}
 
 out:
@@ -4029,65 +3860,24 @@ out:
 
 	return 0;
 }
-static void __init bt_power_init(void)
-{
-	msm_bt_power_device.dev.platform_data = &bluetooth_power;
-}
-#endif
-#ifdef CONFIG_BCM_BT
 
-static struct msm_gpio bt_config_power_on[] = {
-	{ GPIO_CFG(134, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
-		"UART1DM_RFR" },
-	{ GPIO_CFG(135, 1, GPIO_CFG_INPUT,  GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
-		"UART1DM_CTS" },
-	{ GPIO_CFG(136, 1, GPIO_CFG_INPUT,  GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
-		"UART1DM_Rx" },
-	{ GPIO_CFG(137, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
-		"UART1DM_Tx" },
-	{ GPIO_CFG(39, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
-		"BT_WAKE" },
-	{ GPIO_CFG(40, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN,   GPIO_CFG_2MA),
-		"BT_WAKE_INT" }
-};
-
-static struct msm_gpio bt_config_power_off[] = {
-	{ GPIO_CFG(134, 0, GPIO_CFG_INPUT,  GPIO_CFG_PULL_DOWN,   GPIO_CFG_2MA),
-		"UART1DM_RFR" },
-	{ GPIO_CFG(135, 0, GPIO_CFG_INPUT,  GPIO_CFG_PULL_DOWN,   GPIO_CFG_2MA),
-		"UART1DM_CTS" },
-	{ GPIO_CFG(136, 0, GPIO_CFG_INPUT,  GPIO_CFG_PULL_DOWN,   GPIO_CFG_2MA),
-		"UART1DM_Rx" },
-	{ GPIO_CFG(137, 0, GPIO_CFG_INPUT,  GPIO_CFG_PULL_DOWN,   GPIO_CFG_2MA),
-		"UART1DM_Tx" },
-	{ GPIO_CFG(39, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN,   GPIO_CFG_2MA),
-		"BT_WAKE" },
-	{ GPIO_CFG(40, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN,   GPIO_CFG_2MA),
-		"BT_WAKE_INT" }
-};
+//compatible of qualcomm and broadcomm bluetooth chip     
 static int bcm_power(int on)
 {
-
+ //  struct vreg *vreg_bt;
    int rc;
 
    printk(KERN_DEBUG "%s\n", __func__);
 
    if (on) {
-	  
 		rc = msm_gpios_enable(bt_config_power_on,
 			ARRAY_SIZE(bt_config_power_on));
 
 		
-	   
-
-	//rc = gpio_tlmm_config(GPIO_CFG(39, 0,GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-	if (rc) {
-		printk(KERN_ERR"%s: Could not configure 39 gpio %d\n",__func__, 39);
-			 return -EIO;
-		   }
 		
-
-	  rc =gpio_request(39, "bt_wake");	  
+	
+		
+		rc =gpio_request(39, "bt_wake");	  
 	  if(!rc)
 		   gpio_direction_output(39, 1);
 		else
@@ -4125,12 +3915,12 @@ static int bcm_power(int on)
 			printk(KERN_ERR "gpio_request: %d failed!\n", 88);		
 		gpio_free(88);
 				
+		
 	} else {
-	  
 		rc = msm_gpios_enable(bt_config_power_off,
 			ARRAY_SIZE(bt_config_power_off));
 		
-  
+  	
 		rc = gpio_request(88, "bt_reset");
 		if(!rc)
 		   gpio_direction_output(88, 0);
@@ -4144,52 +3934,55 @@ static int bcm_power(int on)
 		else
 			printk(KERN_ERR "gpio_request: %d failed!\n", 38);
 		gpio_free(38);		
+		
 	}
 	return 0;
 }
-static struct platform_device msm_bcm_power_device = {
-	.name = "bcm_power",
-};
 
-
-static struct resource bluesleep_resources[] = {
-	{
-		.name	= "gpio_host_wake",
-		.start	= 40,
-		.end	= 40,//83
-		.flags	= IORESOURCE_IO,
-	},
-	{
-		.name	= "gpio_ext_wake",
-		.start	= 39,   // emmc mipi to 116
-		.end	= 39,     //emmc mipi to 116
-		.flags	= IORESOURCE_IO,
-	},
-	{
-		.name	= "host_wake",
-		.start	= MSM_GPIO_TO_INT(40),
-		.end	= MSM_GPIO_TO_INT(40),
-		.flags	= IORESOURCE_IRQ,
-	},
-};
-
-static struct platform_device msm_bcmsleep_device = {
-	.name = "bcmsleep",
-	.id		= -1,
-	.num_resources	= ARRAY_SIZE(bluesleep_resources),
-	.resource	= bluesleep_resources,
-};
- int __init bt_power_init(void)
+static void __init bt_power_init(void)
 {
-	
-  int rc = 0;
-	msm_bcm_power_device.dev.platform_data = &bcm_power;
-	return rc;
-}
-#endif
-#if 0
+	int i, rc;
 
+	for (i = 0; i < ARRAY_SIZE(vregs_bt_name); i++) {
+		vregs_bt[i] = vreg_get(NULL, vregs_bt_name[i]);
+		if (IS_ERR(vregs_bt[i])) {
+			printk(KERN_ERR "%s: vreg get %s failed (%ld)\n",
+			       __func__, vregs_bt_name[i],
+			       PTR_ERR(vregs_bt[i]));
+			return;
+		}
+	}
+
+	if (machine_is_msm8x55_svlte_surf() || machine_is_msm8x55_svlte_ffa()) {
+		rc = msm_gpios_request_enable(bt_config_clock,
+					ARRAY_SIZE(bt_config_clock));
+		if (rc < 0) {
+			printk(KERN_ERR
+				"%s: msm_gpios_request_enable failed (%d)\n",
+					__func__, rc);
+			return;
+		}
+
+		rc = gpio_direction_output(GPIO_PIN(bt_config_clock->gpio_cfg),
+						0);
+		if (rc < 0) {
+			printk(KERN_ERR
+				"%s: gpio_direction_output failed (%d)\n",
+					__func__, rc);
+			return;
+		}
+	}
+
+
+	msm_bt_power_device.dev.platform_data = &bluetooth_power;
+	msm_bcm_power_device.dev.platform_data = &bcm_power;   //compatible of qualcomm and broadcomm bluetooth chip     
+}
+#else
+#define bt_power_init(x) do {} while (0)
 #endif
+
+/// Qualcomm Bluetooth from 2.6.35
+
 static struct msm_psy_batt_pdata msm_psy_batt_data = {
 	.voltage_min_design 	= 2800,
 	.voltage_max_design	= 4300,
@@ -4264,6 +4057,36 @@ struct platform_device msm_device_sdio_al = {
 };
 
 #endif /* CONFIG_MSM_SDIO_AL */
+// bluesleep / bcmsleep from 2.6.35
+static struct resource bluesleep_resources[] = {
+	{
+		.name	= "gpio_host_wake",
+		.start	= 40,
+		.end	= 40,
+		.flags	= IORESOURCE_IO,
+	},
+	{
+		.name	= "gpio_ext_wake",
+		.start	= 39,   //:42 to 90
+		.end	= 39,     //:42 to 90
+		.flags	= IORESOURCE_IO,
+	},
+	{
+		.name	= "host_wake",
+		.start	= MSM_GPIO_TO_INT(40),
+		.end	= MSM_GPIO_TO_INT(40),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+
+static struct platform_device msm_bcmsleep_device = {
+	.name = "bcmsleep",
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(bluesleep_resources),
+	.resource	= bluesleep_resources,
+};
+//compatible of qualcomm and broadcomm bluetooth chip    
 
 static struct platform_device *devices[] __initdata = {
 #if defined(CONFIG_SERIAL_MSM) || defined(CONFIG_MSM_SERIAL_DEBUGGER)
@@ -6054,6 +5877,24 @@ int get_ftm_from_tag(void)
 }
 EXPORT_SYMBOL(get_ftm_from_tag);
 
+#endif
+#if 0
+static void __init memory_fixup(struct machine_desc *desc, struct tag *tags,
+          char **cmdline, struct meminfo *mi)
+ {
+
+#define MEMBANK0_ADDR 0x00200000 
+#define MEMBANK1_ADDR 0x40000000
+
+   mi->nr_banks = 2;
+   mi->bank[0].start = MEMBANK0_ADDR;
+   mi->bank[0].node = 0;
+   mi->bank[0].size = 256 * SZ_1M;
+   mi->bank[1].start = MEMBANK1_ADDR;
+   mi->bank[1].node = 1;
+   mi->bank[1].size = 256 * SZ_1M;
+ 
+ }
 #endif
 MACHINE_START(ARTHUR, "arthur")
 	.boot_params = PLAT_PHYS_OFFSET + 0x100,
