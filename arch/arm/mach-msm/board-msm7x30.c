@@ -116,7 +116,13 @@ void msm7x30_ts_init(void);
 #define PMEM_KERNEL_EBI0_SIZE           0x600000
 #define MSM_PMEM_AUDIO_SIZE             0x200000   
 
-#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((544 * 960 * 3 * 2), 4096)
+/* fb overlay0 writeback */
+#ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup ((480 * 800 * 3 * 2), 4096)
+#else
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup (0)
+#endif
+
 #define PMIC_GPIO_INT		27
 #define PMIC_VREG_WLAN_LEVEL	2900
 #define PMIC_GPIO_SD_DET	36
