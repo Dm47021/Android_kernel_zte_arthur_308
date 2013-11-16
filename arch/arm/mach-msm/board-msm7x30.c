@@ -105,7 +105,7 @@ when          who    what, where, why                      	comment tag
 void msm7x30_ts_init(void); 
 
 /* Propper Memory Setup, Not that ZTE ZBS */
-#define MSM_PMEM_SF_SIZE	        0x1700000
+#define MSM_PMEM_SF_SIZE	        0x1C00000
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
 #define MSM_FB_SIZE                     0x780000
 #else
@@ -5062,13 +5062,20 @@ static struct mmc_platform_data msm7x30_sdc3_data = {
 
 #ifdef CONFIG_MMC_MSM_SDC4_SUPPORT
 static struct mmc_platform_data msm7x30_sdc4_data = {
-        .ocr_mask        = MMC_VDD_27_28 | MMC_VDD_28_29,
-        .translate_vdd        = msm_sdcc_setup_power,
-        .mmc_bus_width  = MMC_CAP_4_BIT_DATA,
-        .status      = msm7x30_sdcc_slot_status,
-        .status_irq  = PM8058_GPIO_IRQ(PMIC8058_IRQ_BASE, PMIC_GPIO_SD_DET),
-        .irq_flags   = IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+	.ocr_mask	= MMC_VDD_27_28 | MMC_VDD_28_29,
+	.translate_vdd	= msm_sdcc_setup_power,
+	.mmc_bus_width  = MMC_CAP_4_BIT_DATA,
+#ifdef CONFIG_MMC_MSM_CARD_HW_DETECTION
+	.status      = msm7x30_sdcc_slot_status,
+	.status_irq  = PM8058_GPIO_IRQ(PMIC8058_IRQ_BASE, PMIC_GPIO_SD_DET - 1),
+	.irq_flags   = IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+#else
+	.enable_polling_timer = 1,
+#endif
 	.wpswitch    = msm_sdcc_get_wpswitch,
+#ifdef CONFIG_MMC_MSM_SDC4_DUMMY52_REQUIRED
+	.dummy52_required = 1,
+#endif
 	.msmsdcc_fmin	= 144000,
 	.msmsdcc_fmid	= 24576000,
 	.msmsdcc_fmax	= 49152000,
