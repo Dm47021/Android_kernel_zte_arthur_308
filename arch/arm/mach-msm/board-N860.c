@@ -104,13 +104,20 @@ void msm7x30_ts_init(void);
 
 #define MSM_PMEM_SF_SIZE                0x1700000
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
-#define MSM_FB_SIZE                                0x780000
+#define MSM_FB_SIZE                     0x780000
 #else
-#define MSM_FB_SIZE                                0x500000
+#define MSM_FB_SIZE                     0x500000
 #endif
-#define MSM_PMEM_ADSP_SIZE                0x1E00000
-#define PMEM_KERNEL_EBI0_SIZE        0x600000
-#define MSM_PMEM_AUDIO_SIZE                0x200000
+#define MSM_PMEM_ADSP_SIZE              0x1E00000
+#define PMEM_KERNEL_EBI0_SIZE           0x600000
+#define MSM_PMEM_AUDIO_SIZE             0x200000
+
+/* fb overlay0 writeback */
+#ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup ((480 * 800 * 3 * 2), 4096)
+#else
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup (0)
+#endif
 
 #define PMIC_GPIO_INT                        27
 #define PMIC_VREG_WLAN_LEVEL        2900
@@ -5800,10 +5807,17 @@ static void __init reserve_pmem_memory(void)
 #endif
 }
 
+static void __init reserve_mdp_memory(void)
+{
+	mdp_pdata.ov0_wb_size = MSM_FB_OVERLAY0_WRITEBACK_SIZE;
+	msm7x30_reserve_table[mdp_pdata.mem_hid].size += mdp_pdata.ov0_wb_size;
+}
+
 static void __init msm7x30_calculate_reserve_sizes(void)
 {
         size_pmem_devices();
         reserve_pmem_memory();
+        reserve_mdp_memory();
 }
 
 static int msm7x30_paddr_to_memtype(unsigned int paddr)
