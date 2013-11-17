@@ -3118,7 +3118,7 @@ static struct android_pmem_platform_data android_pmem_pdata = {
 	.memory_type = MEMTYPE_EBI0,
 };
 
-static struct platform_device android_pmem_device = {
+
 	.name = "android_pmem",
 	.id = 0,
 	.dev = { .platform_data = &android_pmem_pdata },
@@ -5869,7 +5869,6 @@ static void __init zte_fixup(struct machine_desc *desc, struct tag *tags,
 
 {
 
-
 #define MEMBANK0_ADDR 0x00200000 
 #define MEMBANK1_ADDR 0x40000000
 
@@ -5880,7 +5879,7 @@ static void __init zte_fixup(struct machine_desc *desc, struct tag *tags,
    mi->bank[1].start = MEMBANK1_ADDR;
    mi->bank[1].node = 1;
    mi->bank[1].size = 256 * SZ_1M;
- 
+
         g_zte_ftm_flag_fixup = parse_tag_zteftm((const struct tag *)tags);
 }
 

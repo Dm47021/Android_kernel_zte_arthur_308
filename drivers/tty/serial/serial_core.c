@@ -55,12 +55,6 @@ static struct lock_class_key port_lock_key;
 #define uart_console(port)	(0)
 #endif
 
-//modify sleep control for broadcom BTLA bluetooth chip ZTE_BT_QXX_20110314 begin 
-#ifdef CONFIG_BT_BCM_BTLA_SLEEP
- void bcmsleep_set_bsi(struct uart_port*);
- void bt_outgoing_data(void);
-#endif
-//modify sleep control for broadcom BTLA bluetooth chip ZTE_BT_QXX_20110314 end
 static void uart_change_speed(struct tty_struct *tty, struct uart_state *state,
 					struct ktermios *old_termios);
 static void __uart_wait_until_sent(struct uart_port *port, int timeout);
@@ -519,13 +513,6 @@ static int uart_write(struct tty_struct *tty,
 		WARN_ON(1);
 		return -EL3HLT;
 	}
-	
-//modify sleep control for broadcom BTLA bluetooth chip ZTE_BT_QXX_20110314 begin 
-#ifdef CONFIG_BT_BCM_BTLA_SLEEP
-  if(!strcmp(tty->name,"ttyHS0"))
-    bt_outgoing_data();
-#endif
-//modify sleep control for broadcom BTLA bluetooth chip ZTE_BT_QXX_20110314 end
 
 	port = state->uart_port;
 	circ = &state->xmit;
@@ -1281,12 +1268,6 @@ static void uart_close(struct tty_struct *tty, struct file *filp)
 	port = &state->port;
 
 	pr_debug("uart_close(%d) called\n", uport->line);
-//modify sleep control for broadcom BTLA bluetooth chip ZTE_BT_QXX_20110314 begin 
-#ifdef CONFIG_BT_BCM_BTLA_SLEEP
-	if(!strcmp(tty->name,"ttyHS0"))
-		bcmsleep_set_bsi(NULL);
-#endif
-//modify sleep control for broadcom BTLA bluetooth chip ZTE_BT_QXX_20110314 end
 
 	mutex_lock(&port->mutex);
 	spin_lock_irqsave(&port->lock, flags);
@@ -1603,12 +1584,6 @@ static int uart_open(struct tty_struct *tty, struct file *filp)
 	mutex_unlock(&port->mutex);
 	if (retval == 0)
 		retval = tty_port_block_til_ready(port, tty, filp);
-//modify sleep control for broadcom BTLA bluetooth chip ZTE_BT_QXX_20110314 begin 
-#ifdef CONFIG_BT_BCM_BTLA_SLEEP
-	if(!strcmp(tty->name,"ttyHS0"))
-		bcmsleep_set_bsi(state->uart_port);
-#endif
-//modify sleep control for broadcom BTLA bluetooth chip ZTE_BT_QXX_20110314 end
 
 fail:
 	return retval;

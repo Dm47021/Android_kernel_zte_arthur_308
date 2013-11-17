@@ -19,7 +19,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
- 
 #include <linux/kernel.h>
 #include <linux/interrupt.h>
 #include <linux/device.h>
@@ -39,7 +38,7 @@
 
 static struct workqueue_struct *gsmd_wq;
 
-
+#define SMD_N_PORTS	2
 #define CH_OPENED	0
 #define CH_READY	1
 struct smd_port_info {
@@ -48,19 +47,14 @@ struct smd_port_info {
 	unsigned long		flags;
 };
 
-struct smd_port_info smd_pi[] = {
+struct smd_port_info smd_pi[SMD_N_PORTS] = {
 	{
 		.name = "DS",
-	},
-	{
-		.name = "DATA1",
 	},
 	{
 		.name = "UNUSED",
 	},
 };
-
-#define SMD_N_PORTS	ARRAY_SIZE(smd_pi)
 
 struct gsmd_port {
 	unsigned		port_num;
