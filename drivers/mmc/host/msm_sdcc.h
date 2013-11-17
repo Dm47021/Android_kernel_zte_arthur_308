@@ -298,8 +298,6 @@ struct msmsdcc_curr_req {
 	int			wait_for_auto_prog_done;
 	int			got_auto_prog_done;
 	int			user_pages;
-
-	u32                     req_tout_ms;
 };
 
 struct msmsdcc_sps_ep_conn_data {
@@ -401,20 +399,6 @@ struct msmsdcc_host {
 	bool sdcc_irq_disabled;
 	bool sdcc_suspended;
 	bool sdio_wakeupirq_disabled;
-
-        //ruanmeisi
-	struct timer_list polling_timer;
-	int              enable_polling_timer;
-	//end
-        
-        //ruanmeisi_091224 redetect worker
-	struct work_struct	redetect;
-
-	//ruanmeisi_20100618
-
-	struct workqueue_struct   *workqueue;
-	struct delayed_work	cmd_timeout_work;
-	struct mmc_request	*timeout_mrq;
 };
 
 int msmsdcc_set_pwrsave(struct mmc_host *mmc, int pwrsave);
