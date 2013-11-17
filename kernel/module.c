@@ -2428,6 +2428,13 @@ static int check_modinfo(struct module *mod, struct load_info *info)
 	/* This is allowed: modprobe --force will invalidate it. */
 	if (!modmagic) {
 		err = try_to_force_load(mod, "bad vermagic");
+#if defined(CONFIG_LIBRA_SDIOIF)
+  /* Hack to enable proprietary Wi-Fi driver loading from another build. */
+  } else if (!strcmp(mod->name, "wlan") || !strcmp(mod->name, "libra")) {
+    err = try_to_force_load(mod, "bad vermagic");
+    if (err)
+#endif
+      return err;
 		if (err)
 			return err;
 	} else if (!same_magic(modmagic, vermagic, info->index.vers)) {
