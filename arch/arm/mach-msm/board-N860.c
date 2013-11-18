@@ -5245,6 +5245,7 @@ static struct mmc_platform_data msm7x30_sdc4_data = {
         .status_irq  = PM8058_GPIO_IRQ(PMIC8058_IRQ_BASE, PMIC_GPIO_SD_DET - 1),
         .irq_flags   = IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
 #endif
+        .polling     = 1,
         .msmsdcc_fmin        = 144000,
         .msmsdcc_fmid        = 24576000,
         .msmsdcc_fmax        = 49152000,
@@ -5877,10 +5878,10 @@ static void __init twisted_fixup(struct machine_desc *desc, struct tag *tags,
    mi->nr_banks = 2;
    mi->bank[0].start = MEMBANK0_ADDR;
    mi->bank[0].node = 0;
-   mi->bank[0].size = 256 * SZ_1M;
+   mi->bank[0].size = 255 * SZ_1M;
    mi->bank[1].start = ebi1_phys_offset;
    mi->bank[1].node = 1;
-   mi->bank[1].size = 256 * SZ_1M;
+   mi->bank[1].size = 255 * SZ_1M;
 
       
 }
