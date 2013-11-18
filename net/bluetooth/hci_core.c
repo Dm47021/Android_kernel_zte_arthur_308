@@ -579,9 +579,6 @@ int hci_dev_open(__u16 dev)
 		set_bit(HCI_INIT, &hdev->flags);
 		hdev->init_last_cmd = 0;
 
-		printk("wait for a while  before send HCI command\n");
-		msleep(500);
-		printk("after wait\n");
 		ret = __hci_request(hdev, hci_init_req, 0,
 					msecs_to_jiffies(HCI_INIT_TIMEOUT));
 
@@ -1966,11 +1963,8 @@ static int hci_send_frame(struct sk_buff *skb)
 		kfree_skb(skb);
 		return -ENODEV;
 	}
-//printk("%s: %s type %d len %d data_len %d\n",__func__,
-//	hdev->name, bt_cb(skb)->pkt_type, skb->len,skb->data_len);
-//printk("%s : %d data=%s\n",__func__,sizeof(skb->data),skb->data);
-//printk("%s: %d head=%s\n",__func__,sizeof(skb->data),skb->head);
-//	BT_DBG("%s type %d len %d", hdev->name, bt_cb(skb)->pkt_type, skb->len);
+
+	BT_DBG("%s type %d len %d", hdev->name, bt_cb(skb)->pkt_type, skb->len);
 
 	if (atomic_read(&hdev->promisc)) {
 		/* Time stamp */
@@ -2492,7 +2486,6 @@ static void hci_cmd_task(unsigned long arg)
 {
 	struct hci_dev *hdev = (struct hci_dev *) arg;
 	struct sk_buff *skb;
-//printk("%s: %s cmd %d\n",__func__, hdev->name, atomic_read(&hdev->cmd_cnt));
 
 	BT_DBG("%s cmd %d", hdev->name, atomic_read(&hdev->cmd_cnt));
 
